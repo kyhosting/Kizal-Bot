@@ -151,7 +151,17 @@ python bot.py
 - Fixed all Dashboard menu handlers (Real-time Stats, User Analytics, Limit Usage, Bot Fleet, Export Reports, Alerts Center)
 - Fixed all Group Management menu handlers (List Groups, Add Group, Remove Group, Group Stats, Broadcast)
 - Fixed all Group Settings menu handlers (Required Groups, Welcome Message, Anti-Spam, Moderation)
-- Multi-bot tokens now verified as ONLINE/OFFLINE on startup via Telegram API getMe endpoint
+
+### Multi-Bot System (December 5, 2025) - REAL RUNNING BOTS
+- Multi-bot system now ACTUALLY RUNS managed bots using Pyrogram Client
+- Each managed bot is started as a real Pyrogram client (not just token verification)
+- Bots can receive and respond to /start and messages
+- Auto-start all bots on main bot startup (3 second delay)
+- Status: "running" means bot is ACTUALLY receiving messages
+- Status: "stopped" means bot token valid but not started
+- Status: "error" means failed to start
+- Each managed bot responds with "Bot ONLINE" confirmation
+- Uses same API_ID and API_HASH as main bot
 
 ## User Preferences
 - All interactions via keyboard buttons

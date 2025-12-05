@@ -66,14 +66,6 @@ async def main():
     await db.connect()
     logger.info("Database connected!")
 
-    from core.bot_manager import bot_manager
-    await bot_manager.initialize()
-    logger.info("Bot manager initialized!")
-    
-    status_result = await bot_manager.check_all_bots_status()
-    if status_result.get('bots'):
-        print(f"🤖 Multi-bot status: {status_result['online']} ONLINE, {status_result['offline']} OFFLINE")
-
     app = Client(
         "kifzl_bot",
         api_id=API_ID,
@@ -82,6 +74,10 @@ async def main():
         workers=100,
         workdir="."
     )
+    
+    from core.bot_manager import bot_manager
+    await bot_manager.initialize(api_id=API_ID, api_hash=API_HASH, main_bot=app)
+    logger.info("Bot manager initialized!")
 
     register_start_handlers(app)
     register_menu_handlers(app)
@@ -210,6 +206,16 @@ async def main():
         print(f"📱 Bot: @{bot_info.username}")
         print(f"🆔 Bot ID: {bot_info.id}")
         logger.info(f"Bot is running! @{bot_info.username}")
+        
+        await asyncio.sleep(5)
+        summary = await bot_manager.get_summary()
+        if summary['total_bots'] > 0:
+            print(f"\n🤖 Multi-Bot Status:")
+            print(f"   Total: {summary['total_bots']} bots")
+            print(f"   Running: {summary['running']} ✅")
+            print(f"   Stopped: {summary['stopped']} ⏸️")
+            if summary['error'] > 0:
+                print(f"   Error: {summary['error']} ❌")
 
         await asyncio.Event().wait()
 
