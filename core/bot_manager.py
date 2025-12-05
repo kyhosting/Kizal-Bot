@@ -4,7 +4,9 @@ import logging
 import aiohttp
 from typing import Dict, Any, List, Optional
 from datetime import datetime
-from pyrogram import Client
+from pyrogram import Client, filters
+from pyrogram.types import Message
+from pyrogram.handlers import MessageHandler
 
 logger = logging.getLogger("bot")
 
@@ -23,12 +25,14 @@ class BotInstance:
         self.last_activity: Optional[datetime] = None
         self.bot_username: Optional[str] = None
         self.bot_telegram_id: Optional[int] = None
+        self.is_running = False
     
     def to_dict(self) -> Dict[str, Any]:
         return {
             "bot_id": self.bot_id,
             "name": self.name,
             "status": self.status,
+            "is_running": self.is_running,
             "started_at": self.started_at.isoformat() if self.started_at else None,
             "user_count": self.user_count,
             "message_count": self.message_count,
@@ -44,6 +48,9 @@ class BotManager:
     _bots: Dict[int, BotInstance] = {}
     _db = None
     _running_clients: Dict[int, Client] = {}
+    _api_id: int = 0
+    _api_hash: str = ""
+    _main_bot = None
     
     def __new__(cls):
         if cls._instance is None:
@@ -52,16 +59,18 @@ class BotManager:
             cls._running_clients = {}
         return cls._instance
     
-    async def initialize(self):
+    async def initialize(self, api_id: int = None, api_hash: str = None, main_bot: Client = None):
         from core.database import db
+        from config import API_ID, API_HASH
+        
         self._db = db
-        await self._ensure_table()
+        self._api_id = api_id or API_ID
+        self._api_hash = api_hash or API_HASH
+        self._main_bot = main_bot
+        
         await self._load_bots_from_db()
-        asyncio.create_task(self._auto_start_bots())
+        asyncio.create_task(self._auto_start_all_bots())
         logger.info("BotManager initialized")
-    
-    async def _ensure_table(self):
-        pass
     
     async def _load_bots_from_db(self):
         conn = await self._db.connect()
@@ -82,25 +91,18 @@ class BotManager:
         
         logger.info(f"Loaded {len(self._bots)} bots from database")
     
-    async def _auto_start_bots(self):
-        await asyncio.sleep(2)
-        for bot_id, instance in self._bots.items():
+    async def _auto_start_all_bots(self):
+        await asyncio.sleep(3)
+        for bot_id in list(self._bots.keys()):
             try:
-                is_valid, bot_info = await self._verify_token_online(instance.token)
-                if is_valid:
-                    instance.status = "online"
-                    instance.bot_username = bot_info.get('username')
-                    instance.bot_telegram_id = bot_info.get('id')
-                    await self._update_bot_status(bot_id, "online", bot_info)
-                    logger.info(f"Bot {instance.name} is ONLINE (@{instance.bot_username})")
+                result = await self.start_bot(bot_id)
+                if result.get('success'):
+                    logger.info(f"Auto-started bot ID {bot_id}")
                 else:
-                    instance.status = "offline"
-                    await self._update_bot_status(bot_id, "offline")
-                    logger.warning(f"Bot {instance.name} is OFFLINE")
+                    logger.warning(f"Failed to auto-start bot ID {bot_id}: {result.get('message')}")
             except Exception as e:
-                instance.status = "error"
-                instance.error_count += 1
-                logger.error(f"Error checking bot {instance.name}: {e}")
+                logger.error(f"Error auto-starting bot {bot_id}: {e}")
+            await asyncio.sleep(1)
     
     async def _verify_token_online(self, token: str) -> tuple:
         try:
@@ -121,6 +123,31 @@ class BotManager:
         except Exception as e:
             return False, {"error": str(e)}
     
+    def _create_bot_handlers(self, instance: BotInstance):
+        
+        async def start_handler(client: Client, message: Message):
+            instance.message_count += 1
+            instance.last_activity = datetime.now()
+            
+            await message.reply_text(
+                f"**Halo! Saya @{instance.bot_username}**\n\n"
+                f"Bot ini dikelola oleh KIFZL DEV BOT System.\n"
+                f"Created by: @KIFZLDEV\n\n"
+                f"Status: **ONLINE** ✅"
+            )
+        
+        async def message_handler(client: Client, message: Message):
+            instance.message_count += 1
+            instance.last_activity = datetime.now()
+            
+            await message.reply_text(
+                f"Pesan diterima!\n"
+                f"Bot: @{instance.bot_username}\n"
+                f"Status: ONLINE ✅"
+            )
+        
+        return start_handler, message_handler
+    
     async def add_bot(self, name: str, token: str, created_by: int = None) -> Dict[str, Any]:
         if not self._validate_token_format(token):
             return {"success": False, "message": "Token format tidak valid"}
@@ -139,26 +166,35 @@ class BotManager:
             
             cursor = await conn.execute("""
                 INSERT INTO multi_bot (token, name, status, added_by, last_check, bot_username, bot_telegram_id)
-                VALUES (?, ?, 'online', ?, CURRENT_TIMESTAMP, ?, ?)
+                VALUES (?, ?, 'offline', ?, CURRENT_TIMESTAMP, ?, ?)
             """, (token, name, created_by, bot_info.get('username'), bot_info.get('id')))
             await conn.commit()
             
             bot_id = cursor.lastrowid
             
             instance = BotInstance(bot_id=bot_id, name=name, token=token)
-            instance.status = "online"
             instance.bot_username = bot_info.get('username')
             instance.bot_telegram_id = bot_info.get('id')
             self._bots[bot_id] = instance
             
+            start_result = await self.start_bot(bot_id)
+            
             logger.info(f"Bot added: {name} (ID: {bot_id}) - @{bot_info.get('username')}")
             
-            return {
-                "success": True,
-                "bot_id": bot_id,
-                "username": bot_info.get('username'),
-                "message": f"Bot '{name}' berhasil ditambahkan dan ONLINE!"
-            }
+            if start_result.get('success'):
+                return {
+                    "success": True,
+                    "bot_id": bot_id,
+                    "username": bot_info.get('username'),
+                    "message": f"Bot '{name}' berhasil ditambahkan dan RUNNING! ✅\n@{bot_info.get('username')} sekarang ONLINE dan bisa menerima pesan."
+                }
+            else:
+                return {
+                    "success": True,
+                    "bot_id": bot_id,
+                    "username": bot_info.get('username'),
+                    "message": f"Bot '{name}' berhasil ditambahkan tapi gagal start: {start_result.get('message')}"
+                }
             
         except Exception as e:
             logger.error(f"Failed to add bot: {e}")
@@ -182,33 +218,83 @@ class BotManager:
         
         instance = self._bots[bot_id]
         
-        is_valid, bot_info = await self._verify_token_online(instance.token)
-        
-        if is_valid:
-            instance.status = "online"
-            instance.started_at = datetime.now()
-            instance.bot_username = bot_info.get('username')
-            instance.bot_telegram_id = bot_info.get('id')
-            
-            await self._update_bot_status(bot_id, "online", bot_info)
-            
-            logger.info(f"Bot started: {instance.name} (ID: {bot_id}) - ONLINE")
-            
+        if bot_id in self._running_clients and instance.is_running:
             return {
                 "success": True,
-                "status": "ONLINE",
-                "username": bot_info.get('username'),
-                "message": f"Bot '{instance.name}' berhasil dijalankan - Status: ONLINE"
+                "status": "RUNNING",
+                "message": f"Bot '{instance.name}' sudah berjalan"
             }
-        else:
+        
+        is_valid, bot_info = await self._verify_token_online(instance.token)
+        if not is_valid:
             instance.status = "offline"
-            instance.error_count += 1
+            instance.is_running = False
             await self._update_bot_status(bot_id, "offline")
-            
             return {
                 "success": False,
                 "status": "OFFLINE",
-                "message": f"Bot gagal dijalankan: {bot_info.get('error', 'Token tidak valid')}"
+                "message": f"Token tidak valid: {bot_info.get('error', 'Unknown error')}"
+            }
+        
+        try:
+            if bot_id in self._running_clients:
+                try:
+                    await self._running_clients[bot_id].stop()
+                except:
+                    pass
+                del self._running_clients[bot_id]
+            
+            client = Client(
+                name=f"managed_bot_{bot_id}",
+                api_id=self._api_id,
+                api_hash=self._api_hash,
+                bot_token=instance.token,
+                in_memory=True,
+                workdir="."
+            )
+            
+            start_handler, message_handler = self._create_bot_handlers(instance)
+            
+            client.add_handler(MessageHandler(start_handler, filters.command("start") & filters.private))
+            client.add_handler(MessageHandler(message_handler, filters.private & ~filters.command("start")))
+            
+            await client.start()
+            
+            me = await client.get_me()
+            instance.bot_username = me.username
+            instance.bot_telegram_id = me.id
+            
+            self._running_clients[bot_id] = client
+            instance.client = client
+            instance.status = "running"
+            instance.is_running = True
+            instance.started_at = datetime.now()
+            
+            await self._update_bot_status(bot_id, "running", {
+                "username": me.username,
+                "id": me.id
+            })
+            
+            logger.info(f"Bot STARTED and RUNNING: {instance.name} (@{me.username})")
+            
+            return {
+                "success": True,
+                "status": "RUNNING",
+                "username": me.username,
+                "message": f"Bot '{instance.name}' berhasil dijalankan!\n@{me.username} sekarang ONLINE ✅"
+            }
+            
+        except Exception as e:
+            instance.status = "error"
+            instance.is_running = False
+            instance.error_count += 1
+            logger.error(f"Failed to start bot {bot_id}: {e}")
+            await self._update_bot_status(bot_id, "error")
+            
+            return {
+                "success": False,
+                "status": "ERROR",
+                "message": f"Gagal menjalankan bot: {str(e)}"
             }
     
     async def stop_bot(self, bot_id: int) -> Dict[str, Any]:
@@ -219,23 +305,37 @@ class BotManager:
         
         try:
             if bot_id in self._running_clients:
-                await self._running_clients[bot_id].stop()
+                try:
+                    await self._running_clients[bot_id].stop()
+                except Exception as e:
+                    logger.warning(f"Error stopping client: {e}")
                 del self._running_clients[bot_id]
             
-            instance.status = "offline"
+            instance.client = None
+            instance.status = "stopped"
+            instance.is_running = False
             
-            await self._update_bot_status(bot_id, "offline")
+            await self._update_bot_status(bot_id, "stopped")
             
             logger.info(f"Bot stopped: {instance.name} (ID: {bot_id})")
             
             return {
                 "success": True,
-                "message": f"Bot '{instance.name}' berhasil dihentikan"
+                "message": f"Bot '{instance.name}' (@{instance.bot_username}) berhasil dihentikan"
             }
             
         except Exception as e:
             logger.error(f"Failed to stop bot {bot_id}: {e}")
             return {"success": False, "message": f"Gagal menghentikan bot: {str(e)}"}
+    
+    async def restart_bot(self, bot_id: int) -> Dict[str, Any]:
+        stop_result = await self.stop_bot(bot_id)
+        if not stop_result.get('success') and "tidak ditemukan" in stop_result.get('message', ''):
+            return stop_result
+        
+        await asyncio.sleep(1)
+        
+        return await self.start_bot(bot_id)
     
     async def delete_bot(self, bot_id: int) -> Dict[str, Any]:
         if bot_id not in self._bots:
@@ -256,7 +356,7 @@ class BotManager:
             
             return {
                 "success": True,
-                "message": f"Bot '{instance.name}' berhasil dihapus"
+                "message": f"Bot '{instance.name}' (@{instance.bot_username}) berhasil dihapus"
             }
             
         except Exception as e:
@@ -282,38 +382,59 @@ class BotManager:
     async def check_all_bots_status(self) -> Dict[str, Any]:
         results = []
         for bot_id, instance in self._bots.items():
-            is_valid, bot_info = await self._verify_token_online(instance.token)
+            is_running = bot_id in self._running_clients and instance.is_running
             
-            if is_valid:
-                instance.status = "online"
-                instance.bot_username = bot_info.get('username')
-                instance.bot_telegram_id = bot_info.get('id')
-                await self._update_bot_status(bot_id, "online", bot_info)
+            if is_running:
+                try:
+                    client = self._running_clients[bot_id]
+                    me = await client.get_me()
+                    instance.status = "running"
+                    instance.bot_username = me.username
+                except:
+                    instance.status = "error"
+                    instance.is_running = False
             else:
-                instance.status = "offline"
-                await self._update_bot_status(bot_id, "offline")
+                is_valid, bot_info = await self._verify_token_online(instance.token)
+                if is_valid:
+                    instance.status = "stopped"
+                    instance.bot_username = bot_info.get('username')
+                else:
+                    instance.status = "offline"
             
             results.append({
                 "bot_id": bot_id,
                 "name": instance.name,
                 "status": instance.status,
+                "is_running": instance.is_running,
                 "username": instance.bot_username
             })
+        
+        running_count = sum(1 for r in results if r['status'] == 'running')
+        stopped_count = sum(1 for r in results if r['status'] == 'stopped')
+        offline_count = sum(1 for r in results if r['status'] in ['offline', 'error'])
         
         return {
             "success": True,
             "bots": results,
             "total": len(results),
-            "online": sum(1 for r in results if r['status'] == 'online'),
-            "offline": sum(1 for r in results if r['status'] == 'offline')
+            "running": running_count,
+            "stopped": stopped_count,
+            "offline": offline_count
         }
     
     async def get_all_bots(self) -> List[Dict[str, Any]]:
-        return [instance.to_dict() for instance in self._bots.values()]
+        bots = []
+        for bot_id, instance in self._bots.items():
+            bot_dict = instance.to_dict()
+            bot_dict['is_running'] = bot_id in self._running_clients and instance.is_running
+            bots.append(bot_dict)
+        return bots
     
     async def get_bot(self, bot_id: int) -> Optional[Dict[str, Any]]:
         if bot_id in self._bots:
-            return self._bots[bot_id].to_dict()
+            bot_dict = self._bots[bot_id].to_dict()
+            bot_dict['is_running'] = bot_id in self._running_clients
+            return bot_dict
         return None
     
     async def get_bot_stats(self, bot_id: int) -> Dict[str, Any]:
@@ -321,17 +442,10 @@ class BotManager:
             return {"success": False, "message": "Bot tidak ditemukan"}
         
         instance = self._bots[bot_id]
-        
-        is_valid, bot_info = await self._verify_token_online(instance.token)
-        if is_valid:
-            instance.status = "online"
-            instance.bot_username = bot_info.get('username')
-            instance.bot_telegram_id = bot_info.get('id')
-        else:
-            instance.status = "offline"
+        is_running = bot_id in self._running_clients and instance.is_running
         
         uptime = None
-        if instance.started_at and instance.status == "online":
+        if instance.started_at and is_running:
             uptime = (datetime.now() - instance.started_at).total_seconds()
         
         return {
@@ -339,6 +453,7 @@ class BotManager:
             "stats": {
                 "name": instance.name,
                 "status": instance.status,
+                "is_running": is_running,
                 "username": instance.bot_username,
                 "telegram_id": instance.bot_telegram_id,
                 "uptime_seconds": uptime,
@@ -362,29 +477,39 @@ class BotManager:
                 instance.error_count += 1
     
     async def get_summary(self) -> Dict[str, Any]:
-        online_count = 0
-        offline_count = 0
+        running_count = 0
+        stopped_count = 0
         error_count = 0
         
-        for instance in self._bots.values():
-            if instance.status == "online":
-                online_count += 1
+        for bot_id, instance in self._bots.items():
+            is_running = bot_id in self._running_clients and instance.is_running
+            if is_running:
+                running_count += 1
             elif instance.status == "error":
                 error_count += 1
             else:
-                offline_count += 1
+                stopped_count += 1
         
         total_users = sum(b.user_count for b in self._bots.values())
         total_messages = sum(b.message_count for b in self._bots.values())
         
         return {
             "total_bots": len(self._bots),
-            "running": online_count,
-            "stopped": offline_count,
+            "running": running_count,
+            "stopped": stopped_count,
             "error": error_count,
             "total_users": total_users,
             "total_messages": total_messages
         }
+    
+    async def shutdown_all(self):
+        for bot_id in list(self._running_clients.keys()):
+            try:
+                await self.stop_bot(bot_id)
+            except Exception as e:
+                logger.error(f"Error stopping bot {bot_id} during shutdown: {e}")
+        
+        logger.info("All managed bots stopped")
 
 
 bot_manager = BotManager()
