@@ -1,0 +1,38 @@
+modules = ["python-3.11"]
+[agent]
+expertMode = true
+
+[nix]
+channel = "stable-25_05"
+packages = ["cargo", "libiconv", "libxcrypt", "openssl", "pkg-config", "rustc"]
+
+[workflows]
+runButton = "Project"
+
+[[workflows.workflow]]
+name = "Project"
+mode = "parallel"
+author = "agent"
+
+[[workflows.workflow.tasks]]
+task = "workflow.run"
+args = "Start Telegram Bot"
+
+[[workflows.workflow]]
+name = "Start Telegram Bot"
+author = "agent"
+
+[workflows.workflow.metadata]
+outputType = "console"
+
+[[workflows.workflow.tasks]]
+task = "shell.exec"
+args = "python bot.py"
+
+[userenv]
+
+[userenv.shared]
+ENCRYPTION_KEY = "KIKI28082008"
+API_ID = "36998447"
+API_HASH = "119e54fdda8db7333108704413f9ff80"
+TELEGRAM_BOT_TOKEN = "8476769994:AAH4NUn0pmT4ca1wrwwe5KNz4jEiMZ2aFQo"
