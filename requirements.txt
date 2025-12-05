@@ -14,3 +14,12 @@ openpyxl
 pyrogram
 tgcrypto
 vobject
+aiohttp
+aiosqlite
+cryptography
+openpyxl
+psutil
+pyrogram
+python-dotenv
+tgcrypto
+vobject
