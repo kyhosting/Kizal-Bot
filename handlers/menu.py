@@ -961,13 +961,13 @@ async def handle_broadcast_input(client: Client, message: Message):
     
     await message.reply_text("```\n⏳ Memulai broadcast...\n```")
     
-    broadcast_message = f"""📢 **PENGUMUMAN**
+    broadcast_message = f"""📢 <b>PENGUMUMAN</b>
 ───────────────────────────────────────
 
 {text}
 
 ───────────────────────────────────────
-_Pesan dari Admin @KIFZLDEV_"""
+<i>Pesan dari Admin @KIFZLDEV</i>"""
     
     success_count = 0
     fail_count = 0
@@ -979,11 +979,13 @@ _Pesan dari Admin @KIFZLDEV_"""
                 await client.send_message(
                     chat_id=target_id,
                     text=broadcast_message,
-                    parse_mode=ParseMode.MARKDOWN
+                    parse_mode=ParseMode.HTML
                 )
                 success_count += 1
-        except Exception:
+        except Exception as e:
             fail_count += 1
+            import logging
+            logging.error(f"Broadcast failed to {target_id}: {e}")
     
     await SessionManager.clear(user_id)
     
