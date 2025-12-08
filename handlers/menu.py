@@ -961,6 +961,14 @@ async def handle_broadcast_input(client: Client, message: Message):
     
     await message.reply_text("```\n⏳ Memulai broadcast...\n```")
     
+    broadcast_message = f"""📢 **PENGUMUMAN**
+───────────────────────────────────────
+
+{text}
+
+───────────────────────────────────────
+_Pesan dari Admin @KIFZLDEV_"""
+    
     success_count = 0
     fail_count = 0
     
@@ -970,7 +978,7 @@ async def handle_broadcast_input(client: Client, message: Message):
             if target_id and target_id != user_id:
                 await client.send_message(
                     chat_id=target_id,
-                    text=text,
+                    text=broadcast_message,
                     parse_mode=ParseMode.MARKDOWN
                 )
                 success_count += 1
