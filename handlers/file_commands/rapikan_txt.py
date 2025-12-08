@@ -99,7 +99,8 @@ async def handle_rapikan_txt(client: Client, message: Message):
         await message.reply_document(
             document=output_filepath,
             file_name=f"rapikan_{message.document.file_name}",
-            caption=f"✅ Berhasil rapikan TXT!\n📊 Sebelum: {original_count} baris\n📊 Sesudah: {cleaned_count} nomor\n🗑️ Dihapus: {removed} (duplikat/invalid)"
+            caption=f"✅ Berhasil rapikan TXT!\n📊 Sebelum: {original_count} baris\n📊 Sesudah: {cleaned_count} nomor\n🗑️ Dihapus: {removed} (duplikat/invalid)",
+            reply_markup=keyboard
         )
 
         success, status = await limit_manager.use_operation(user_id, "rapikan_txt")

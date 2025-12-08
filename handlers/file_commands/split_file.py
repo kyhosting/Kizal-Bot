@@ -218,10 +218,12 @@ async def handle_split_file(client: Client, message: Message):
 
                     output_files.append(output_file)
 
-            for output_file in output_files:
+            for i, output_file in enumerate(output_files):
+                is_last = (i == len(output_files) - 1)
                 await message.reply_document(
                     document=output_file,
-                    file_name=os.path.basename(output_file).replace(f"temp_{user_id}_", "")
+                    file_name=os.path.basename(output_file).replace(f"temp_{user_id}_", ""),
+                    reply_markup=keyboard if is_last else None
                 )
 
             await message.reply_text(

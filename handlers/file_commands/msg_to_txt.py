@@ -74,7 +74,8 @@ async def handle_msg_to_txt(client: Client, message: Message):
             await message.reply_document(
                 document=filepath,
                 file_name=f"{filename}.txt",
-                caption=f"✅ Berhasil convert MSG to TXT!\n📂 Total: {len(content)} karakter"
+                caption=f"✅ Berhasil convert MSG to TXT!\n📂 Total: {len(content)} karakter",
+                reply_markup=keyboard
             )
 
             success, status = await limit_manager.use_operation(user_id, "msg_to_txt")

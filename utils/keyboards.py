@@ -239,3 +239,10 @@ def get_group_settings_keyboard() -> ReplyKeyboardMarkup:
         [KeyboardButton("🔙 KEMBALI 🔙")]
     ]
     return ReplyKeyboardMarkup(keyboard, resize_keyboard=True)
+
+
+def get_broadcast_keyboard() -> ReplyKeyboardMarkup:
+    keyboard = [
+        [KeyboardButton("❌ BATAL ❌")]
+    ]
+    return ReplyKeyboardMarkup(keyboard, resize_keyboard=True)

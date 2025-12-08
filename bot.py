@@ -13,7 +13,7 @@ from core.monitoring import BotMonitor, MetricsCollector, AlertManager
 from core.limit_manager import limit_manager
 
 from handlers.start import register_start_handlers
-from handlers.menu import register_menu_handlers
+from handlers.menu import register_menu_handlers, handle_broadcast_input
 from handlers.verify import register_verify_handlers
 from handlers.redeem import register_redeem_handlers
 from handlers.owner import register_owner_handlers, handle_owner_input
@@ -134,6 +134,8 @@ async def main():
             elif mode == "redeem":
                 from handlers.redeem import redeem_process
                 await redeem_process(client, message)
+            elif mode == "broadcast":
+                await handle_broadcast_input(client, message)
             elif mode in ["add_vip", "add_vvip", "create_redeem", "ban_user", "unban_user", 
                           "add_bot", "start_bot", "stop_bot", "delete_bot", "bot_stats",
                           "check_bot_token", "check_bot_username"]:

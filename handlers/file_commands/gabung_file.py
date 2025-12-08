@@ -139,7 +139,8 @@ async def handle_gabung_file(client: Client, message: Message):
             await message.reply_document(
                 document=output_filepath,
                 file_name=f"{output_name}.{file_type}",
-                caption=f"✅ Berhasil gabung {len(merge_files)} file!\n📂 Total: {total_count} kontak"
+                caption=f"✅ Berhasil gabung {len(merge_files)} file!\n📂 Total: {total_count} kontak",
+                reply_markup=keyboard
             )
 
             success, status = await limit_manager.use_operation(user_id, "gabung_file")

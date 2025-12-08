@@ -6,8 +6,10 @@ from core.error_handler import handle_errors
 from utils.keyboards import (
     get_menu_keyboard, get_main_keyboard, get_maintenance_keyboard,
     get_bot_system_keyboard, get_monitoring_keyboard, get_group_management_keyboard,
-    get_group_settings_keyboard, get_dashboard_keyboard
+    get_group_settings_keyboard, get_dashboard_keyboard, get_broadcast_keyboard
 )
+from utils.session_manager import SessionManager
+from pyrogram.enums import ParseMode
 from utils.messages import Messages
 
 
@@ -904,19 +906,91 @@ async def handle_broadcast(client: Client, message: Message):
     if not is_owner(user_id):
         return
     
+    await SessionManager.save(user_id, "broadcast", step=1)
+    
     text = """```
 🔔 BROADCAST
 ───────────────────────────────────────
 
-Fitur broadcast akan mengirim pesan
-ke semua grup terdaftar.
+Kirim pesan ke semua user terdaftar.
+Format: Markdown
 
-Status: Coming soon
+Contoh format:
+*Bold* _Italic_ `Code`
+[Link](https://example.com)
+
+Kirim pesan yang ingin di-broadcast:
 
 ───────────────────────────────────────
 ```"""
     
-    await message.reply_text(text, reply_markup=get_group_management_keyboard())
+    await message.reply_text(text, reply_markup=get_broadcast_keyboard())
+
+
+@handle_errors
+async def handle_broadcast_input(client: Client, message: Message):
+    user_id = message.from_user.id
+    text = message.text
+    
+    if not is_owner(user_id):
+        return
+    
+    if text == "❌ BATAL ❌":
+        await SessionManager.clear(user_id)
+        await message.reply_text(
+            "```\n❌ Broadcast dibatalkan\n```",
+            reply_markup=get_group_management_keyboard()
+        )
+        return
+    
+    session = await SessionManager.get(user_id)
+    if not session or session.get("mode") != "broadcast":
+        return
+    
+    from core.database import db
+    
+    all_users = await db.get_all_users()
+    
+    if not all_users:
+        await SessionManager.clear(user_id)
+        await message.reply_text(
+            "```\n❌ Tidak ada user terdaftar\n```",
+            reply_markup=get_group_management_keyboard()
+        )
+        return
+    
+    await message.reply_text("```\n⏳ Memulai broadcast...\n```")
+    
+    success_count = 0
+    fail_count = 0
+    
+    for user in all_users:
+        try:
+            target_id = user.get("telegram_id")
+            if target_id and target_id != user_id:
+                await client.send_message(
+                    chat_id=target_id,
+                    text=text,
+                    parse_mode=ParseMode.MARKDOWN
+                )
+                success_count += 1
+        except Exception:
+            fail_count += 1
+    
+    await SessionManager.clear(user_id)
+    
+    result_text = f"""```
+✅ BROADCAST SELESAI
+───────────────────────────────────────
+
+📨 Terkirim : {success_count} user
+❌ Gagal    : {fail_count} user
+📊 Total    : {len(all_users)} user
+
+───────────────────────────────────────
+```"""
+    
+    await message.reply_text(result_text, reply_markup=get_group_management_keyboard())
 
 
 @handle_errors
