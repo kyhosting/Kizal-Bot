@@ -148,7 +148,8 @@ async def handle_admin_navy_input(client: Client, message: Message):
             await message.reply_document(
                 document=vcf_filepath,
                 file_name=f"{vcf_filename}.vcf",
-                caption=f"✅ Berhasil create ADMIN & NAVY!\n📂 Total: {total_contacts} kontak\n   Admin: {len(admin_numbers)} | Navy: {len(navy_numbers)}"
+                caption=f"✅ Berhasil create ADMIN & NAVY!\n📂 Total: {total_contacts} kontak\n   Admin: {len(admin_numbers)} | Navy: {len(navy_numbers)}",
+                reply_markup=keyboard
             )
 
             success, status = await limit_manager.use_operation(user_id, "admin_navy")

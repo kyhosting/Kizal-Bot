@@ -112,7 +112,8 @@ async def handle_txt_to_vcf(client: Client, message: Message):
             await message.reply_document(
                 document=vcf_filepath,
                 file_name=f"{vcf_filename}.vcf",
-                caption=f"✅ Berhasil convert TXT to VCF!\n📂 Total: {len(phone_numbers)} kontak"
+                caption=f"✅ Berhasil convert TXT to VCF!\n📂 Total: {len(phone_numbers)} kontak",
+                reply_markup=keyboard
             )
 
             success, status = await limit_manager.use_operation(user_id, "txt_to_vcf")

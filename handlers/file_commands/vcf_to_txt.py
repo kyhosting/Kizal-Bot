@@ -76,7 +76,8 @@ async def handle_vcf_to_txt(client: Client, message: Message):
         await message.reply_document(
             document=txt_filepath,
             file_name=txt_filename,
-            caption=f"✅ Berhasil extract VCF to TXT!\n📂 Total: {len(numbers)} nomor"
+            caption=f"✅ Berhasil extract VCF to TXT!\n📂 Total: {len(numbers)} nomor",
+            reply_markup=keyboard
         )
 
         success, status = await limit_manager.use_operation(user_id, "vcf_to_txt")
