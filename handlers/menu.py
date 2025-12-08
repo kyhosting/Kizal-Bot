@@ -961,13 +961,15 @@ async def handle_broadcast_input(client: Client, message: Message):
     
     await message.reply_text("```\n⏳ Memulai broadcast...\n```")
     
-    broadcast_message = f"""📢 <b>PENGUMUMAN</b>
+    broadcast_message = f"""<pre>
+📢 PENGUMUMAN
 ───────────────────────────────────────
 
 {text}
 
 ───────────────────────────────────────
-<i>Pesan dari Admin @KIFZLDEV</i>"""
+Pesan dari Admin @KIFZLDEV
+</pre>"""
     
     success_count = 0
     fail_count = 0
