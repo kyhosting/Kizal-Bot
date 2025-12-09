@@ -8,7 +8,7 @@ from core.security import Security
 from core.error_handler import handle_errors
 from utils.keyboards import (
     get_owner_panel_keyboard, get_menu_keyboard, get_cancel_keyboard,
-    get_redeem_type_keyboard, get_bot_management_keyboard, get_main_keyboard,
+    get_redeem_type_keyboard, get_main_keyboard,
     get_monitoring_keyboard
 )
 from utils.session_manager import SessionManager
@@ -36,7 +36,6 @@ Pilih menu yang tersedia:
 📝 Lihat Redeem - Lihat kode aktif
 🚫 Ban User     - Banned user
 ✅ Unban User   - Unban user
-🤖 Manage Bots  - Kelola multi-bot
 📈 Metrics      - Lihat metrics
 📢 Broadcast    - Kirim pesan ke semua user
 
@@ -181,131 +180,6 @@ async def unban_user_start(client: Client, message: Message):
 
     await message.reply_text(
         "```\n✅ UNBAN USER\n───────────────────────────────────────\n\nMasukkan User ID yang ingin di-unban:\n\n───────────────────────────────────────\n```",
-        reply_markup=get_cancel_keyboard()
-    )
-
-
-@handle_errors
-async def manage_bots_menu(client: Client, message: Message):
-    if not is_owner(message.from_user.id):
-        return
-    
-    from core.bot_manager import bot_manager
-    
-    summary = await bot_manager.get_summary()
-    
-    text = f"""```
-🤖 BOT MANAGEMENT
-───────────────────────────────────────
-
-📊 STATUS MULTI-BOT
-───────────────────────────────────────
-• Total Bots    : {summary['total_bots']}
-• Running       : {summary['running']}
-• Stopped       : {summary['stopped']}
-• Error         : {summary['error']}
-• Total Users   : {summary['total_users']}
-• Total Msgs    : {summary['total_messages']}
-
-───────────────────────────────────────
-Pilih operasi:
-───────────────────────────────────────
-```"""
-
-    await message.reply_text(text, reply_markup=get_bot_management_keyboard())
-
-
-@handle_errors
-async def add_bot_start(client: Client, message: Message):
-    if not is_owner(message.from_user.id):
-        return
-    
-    await SessionManager.save(message.from_user.id, "add_bot", step=1)
-    
-    await message.reply_text(
-        "```\n➕ ADD NEW BOT\n───────────────────────────────────────\n\nMasukkan nama bot:\n(Contoh: Bot Backup 1)\n\n───────────────────────────────────────\n```",
-        reply_markup=get_cancel_keyboard()
-    )
-
-
-@handle_errors
-async def list_bots(client: Client, message: Message):
-    if not is_owner(message.from_user.id):
-        return
-    
-    from core.bot_manager import bot_manager
-    
-    bots = await bot_manager.get_all_bots()
-    
-    if not bots:
-        await message.reply_text(
-            "```\n📭 Belum ada bot terdaftar\n\nGunakan '➕ Add New Bot' untuk menambahkan\n```",
-            reply_markup=get_bot_management_keyboard()
-        )
-        return
-    
-    text = "```\n📋 DAFTAR BOT\n───────────────────────────────────────\n"
-    
-    for bot in bots:
-        status_emoji = "🟢" if bot['status'] == "running" else "🔴" if bot['status'] == "error" else "⚪"
-        text += f"\n{status_emoji} ID: {bot['bot_id']}\n"
-        text += f"   Nama: {bot['name']}\n"
-        text += f"   Status: {bot['status'].upper()}\n"
-        text += f"   Users: {bot['user_count']} | Msgs: {bot['message_count']}\n"
-    
-    text += "\n───────────────────────────────────────\n```"
-    
-    await message.reply_text(text, reply_markup=get_bot_management_keyboard())
-
-
-@handle_errors
-async def start_bot_cmd(client: Client, message: Message):
-    if not is_owner(message.from_user.id):
-        return
-    
-    await SessionManager.save(message.from_user.id, "start_bot", step=1)
-    
-    await message.reply_text(
-        "```\n▶️ START BOT\n───────────────────────────────────────\n\nMasukkan Bot ID yang ingin dijalankan:\n\n───────────────────────────────────────\n```",
-        reply_markup=get_cancel_keyboard()
-    )
-
-
-@handle_errors
-async def stop_bot_cmd(client: Client, message: Message):
-    if not is_owner(message.from_user.id):
-        return
-    
-    await SessionManager.save(message.from_user.id, "stop_bot", step=1)
-    
-    await message.reply_text(
-        "```\n🛑 STOP BOT\n───────────────────────────────────────\n\nMasukkan Bot ID yang ingin dihentikan:\n\n───────────────────────────────────────\n```",
-        reply_markup=get_cancel_keyboard()
-    )
-
-
-@handle_errors
-async def bot_stats_cmd(client: Client, message: Message):
-    if not is_owner(message.from_user.id):
-        return
-    
-    await SessionManager.save(message.from_user.id, "bot_stats", step=1)
-    
-    await message.reply_text(
-        "```\n📊 BOT STATS\n───────────────────────────────────────\n\nMasukkan Bot ID untuk melihat statistik:\n\n───────────────────────────────────────\n```",
-        reply_markup=get_cancel_keyboard()
-    )
-
-
-@handle_errors
-async def delete_bot_cmd(client: Client, message: Message):
-    if not is_owner(message.from_user.id):
-        return
-    
-    await SessionManager.save(message.from_user.id, "delete_bot", step=1)
-    
-    await message.reply_text(
-        "```\n🗑️ DELETE BOT\n───────────────────────────────────────\n\n⚠️ PERHATIAN: Bot yang dihapus tidak dapat dikembalikan!\n\nMasukkan Bot ID yang ingin dihapus:\n\n───────────────────────────────────────\n```",
         reply_markup=get_cancel_keyboard()
     )
 
@@ -635,144 +509,6 @@ async def handle_owner_input(client: Client, message: Message):
                 )
             except ValueError:
                 await message.reply_text("```\n❌ User ID harus berupa angka!\n```")
-
-    elif mode == "add_bot":
-        from core.bot_manager import bot_manager
-        
-        if step == 1:
-            data["bot_name"] = text.strip()
-            await SessionManager.save(user_id, mode, 2, data)
-            await message.reply_text(
-                "```\n🔑 BOT TOKEN\n───────────────────────────────────────\n\nMasukkan token bot dari @BotFather:\n\n───────────────────────────────────────\n```",
-                reply_markup=get_cancel_keyboard()
-            )
-        elif step == 2:
-            token = text.strip()
-            bot_name = data.get("bot_name")
-            
-            result = await bot_manager.add_bot(bot_name, token, created_by=user_id)
-            
-            await SessionManager.clear(user_id)
-            
-            if result["success"]:
-                await message.reply_text(
-                    f"```\n✅ BOT BERHASIL DITAMBAHKAN!\n───────────────────────────────────────\n📛 Nama    : {bot_name}\n🆔 Bot ID  : {result['bot_id']}\n───────────────────────────────────────\n```",
-                    reply_markup=get_bot_management_keyboard()
-                )
-            else:
-                await message.reply_text(
-                    f"```\n❌ GAGAL!\n\n{result['message']}\n```",
-                    reply_markup=get_bot_management_keyboard()
-                )
-
-    elif mode == "start_bot":
-        from core.bot_manager import bot_manager
-        
-        if step == 1:
-            try:
-                bot_id = int(text.strip())
-                result = await bot_manager.start_bot(bot_id)
-                
-                await SessionManager.clear(user_id)
-                
-                if result["success"]:
-                    await message.reply_text(
-                        f"```\n✅ {result['message']}\n```",
-                        reply_markup=get_bot_management_keyboard()
-                    )
-                else:
-                    await message.reply_text(
-                        f"```\n❌ {result['message']}\n```",
-                        reply_markup=get_bot_management_keyboard()
-                    )
-            except ValueError:
-                await message.reply_text("```\n❌ Bot ID harus berupa angka!\n```")
-
-    elif mode == "stop_bot":
-        from core.bot_manager import bot_manager
-        
-        if step == 1:
-            try:
-                bot_id = int(text.strip())
-                result = await bot_manager.stop_bot(bot_id)
-                
-                await SessionManager.clear(user_id)
-                
-                if result["success"]:
-                    await message.reply_text(
-                        f"```\n✅ {result['message']}\n```",
-                        reply_markup=get_bot_management_keyboard()
-                    )
-                else:
-                    await message.reply_text(
-                        f"```\n❌ {result['message']}\n```",
-                        reply_markup=get_bot_management_keyboard()
-                    )
-            except ValueError:
-                await message.reply_text("```\n❌ Bot ID harus berupa angka!\n```")
-
-    elif mode == "delete_bot":
-        from core.bot_manager import bot_manager
-        
-        if step == 1:
-            try:
-                bot_id = int(text.strip())
-                result = await bot_manager.delete_bot(bot_id)
-                
-                await SessionManager.clear(user_id)
-                
-                if result["success"]:
-                    await message.reply_text(
-                        f"```\n✅ {result['message']}\n```",
-                        reply_markup=get_bot_management_keyboard()
-                    )
-                else:
-                    await message.reply_text(
-                        f"```\n❌ {result['message']}\n```",
-                        reply_markup=get_bot_management_keyboard()
-                    )
-            except ValueError:
-                await message.reply_text("```\n❌ Bot ID harus berupa angka!\n```")
-
-    elif mode == "bot_stats":
-        from core.bot_manager import bot_manager
-        
-        if step == 1:
-            try:
-                bot_id = int(text.strip())
-                result = await bot_manager.get_bot_stats(bot_id)
-                
-                await SessionManager.clear(user_id)
-                
-                if result["success"]:
-                    stats = result["stats"]
-                    uptime = "N/A"
-                    if stats.get("uptime_seconds"):
-                        hours = int(stats["uptime_seconds"] // 3600)
-                        minutes = int((stats["uptime_seconds"] % 3600) // 60)
-                        uptime = f"{hours}h {minutes}m"
-                    
-                    await message.reply_text(
-                        f"""```
-📊 BOT STATISTICS
-───────────────────────────────────────
-📛 Name      : {stats['name']}
-📡 Status    : {stats['status'].upper()}
-⏰ Uptime    : {uptime}
-👥 Users     : {stats['user_count']}
-💬 Messages  : {stats['message_count']}
-❌ Errors    : {stats['error_count']}
-───────────────────────────────────────
-```""",
-                        reply_markup=get_bot_management_keyboard()
-                    )
-                else:
-                    await message.reply_text(
-                        f"```\n❌ {result['message']}\n```",
-                        reply_markup=get_bot_management_keyboard()
-                    )
-            except ValueError:
-                await message.reply_text("```\n❌ Bot ID harus berupa angka!\n```")
     
     elif mode == "check_bot_token":
         from core.bot_checker import bot_checker
@@ -1009,15 +745,6 @@ def register_owner_handlers(app: Client):
     app.on_message(filters.regex("^🜲 Lihat Redeem 🜲$") & filters.private)(list_redeem_codes)
     app.on_message(filters.regex("^🜲 Ban User 🜲$") & filters.private)(ban_user_start)
     app.on_message(filters.regex("^🜲 Unban User 🜲$") & filters.private)(unban_user_start)
-    
-    app.on_message(filters.regex("^🤖 Manage Bots$") & filters.private)(manage_bots_menu)
-    app.on_message(filters.regex("^🜲 Add New Bot 🜲$") & filters.private)(add_bot_start)
-    app.on_message(filters.regex("^🜲 List Bots 🜲$") & filters.private)(list_bots)
-    app.on_message(filters.regex("^🜲 Start Bot 🜲$") & filters.private)(start_bot_cmd)
-    app.on_message(filters.regex("^🜲 Stop Bot 🜲$") & filters.private)(stop_bot_cmd)
-    app.on_message(filters.regex("^🜲 Bot Stats 🜲$") & filters.private)(bot_stats_cmd)
-    app.on_message(filters.regex("^🜲 Delete Bot 🜲$") & filters.private)(delete_bot_cmd)
-    app.on_message(filters.regex("^🜲 Restart Bot 🜲$") & filters.private)(start_bot_cmd)
     
     app.on_message(filters.regex("^📊 Dashboard$") & filters.private)(show_dashboard)
     app.on_message(filters.regex("^🔍 Check Bot$") & filters.private)(show_bot_checker_menu)

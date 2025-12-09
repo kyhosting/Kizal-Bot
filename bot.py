@@ -137,7 +137,6 @@ async def main():
             elif mode == "broadcast":
                 await handle_broadcast_input(client, message)
             elif mode in ["add_vip", "add_vvip", "create_redeem", "ban_user", "unban_user", 
-                          "add_bot", "start_bot", "stop_bot", "delete_bot", "bot_stats",
                           "check_bot_token", "check_bot_username", "broadcast"]:
                 await handle_owner_input(client, message)
             

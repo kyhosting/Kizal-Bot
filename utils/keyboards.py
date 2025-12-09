@@ -110,9 +110,8 @@ def get_owner_panel_keyboard() -> ReplyKeyboardMarkup:
         [KeyboardButton("🜲 Tambah VIP 🜲"), KeyboardButton("🜲 Tambah VVIP 🜲")],
         [KeyboardButton("🜲 Buat Redeem 🜲"), KeyboardButton("🜲 Lihat Redeem 🜲")],
         [KeyboardButton("🜲 Ban User 🜲"), KeyboardButton("🜲 Unban User 🜲")],
-        [KeyboardButton("🤖 Manage Bots"), KeyboardButton("📊 Dashboard")],
-        [KeyboardButton("🔍 Check Bot"), KeyboardButton("🜲 Metrics 🜲")],
-        [KeyboardButton("📢 Broadcast")],
+        [KeyboardButton("📊 Dashboard"), KeyboardButton("🜲 Metrics 🜲")],
+        [KeyboardButton("🔍 Check Bot"), KeyboardButton("📢 Broadcast")],
         [KeyboardButton("🔙 KEMBALI 🔙")]
     ]
     return ReplyKeyboardMarkup(keyboard, resize_keyboard=True)
@@ -142,17 +141,6 @@ def get_bot_system_keyboard() -> ReplyKeyboardMarkup:
         [KeyboardButton("🜲 Bot Tokens 🜲"), KeyboardButton("🜲 Webhooks 🜲")],
         [KeyboardButton("🜲 Auto Restart 🜲"), KeyboardButton("🜲 Logging 🜲")],
         [KeyboardButton("🜲 Security 🜲"), KeyboardButton("🜲 Performance 🜲")],
-        [KeyboardButton("🔙 KEMBALI 🔙")]
-    ]
-    return ReplyKeyboardMarkup(keyboard, resize_keyboard=True)
-
-
-def get_bot_management_keyboard() -> ReplyKeyboardMarkup:
-    keyboard = [
-        [KeyboardButton("🜲 Add New Bot 🜲"), KeyboardButton("🜲 List Bots 🜲")],
-        [KeyboardButton("🜲 Start Bot 🜲"), KeyboardButton("🜲 Stop Bot 🜲")],
-        [KeyboardButton("🜲 Bot Stats 🜲"), KeyboardButton("🜲 Restart Bot 🜲")],
-        [KeyboardButton("🜲 Delete Bot 🜲")],
         [KeyboardButton("🔙 KEMBALI 🔙")]
     ]
     return ReplyKeyboardMarkup(keyboard, resize_keyboard=True)
