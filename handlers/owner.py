@@ -1,4 +1,4 @@
-from pyrogram import Client, filters
+from pyrogram import Client, filters, enums
 from pyrogram.types import Message
 from datetime import datetime, timedelta
 
@@ -841,7 +841,7 @@ async def handle_owner_input(client: Client, message: Message):
                     await client.send_message(
                         chat_id=user['telegram_id'],
                         text=f"<pre>{broadcast_message}</pre>",
-                        parse_mode="html"
+                        parse_mode=enums.ParseMode.HTML
                     )
                     success_count += 1
                 except Exception:
