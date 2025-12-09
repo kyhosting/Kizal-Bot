@@ -183,7 +183,7 @@ async def handle_split_file(client: Client, message: Message):
 
                     renamed_chunk = rename_contacts_split(chunk, global_contact_index, contact_prefix)
 
-                    output_file = FileUtils.get_temp_path(user_id, f"{output_name}{file_prefix + i}.vcf")
+                    output_file = FileUtils.get_temp_path(user_id, f"{output_name} {file_prefix + i}.vcf")
                     with open(output_file, 'w', encoding='utf-8') as f:
                         for contact in renamed_chunk:
                             f.write(contact.serialize())
@@ -212,7 +212,7 @@ async def handle_split_file(client: Client, message: Message):
                     if not chunk:
                         continue
 
-                    output_file = FileUtils.get_temp_path(user_id, f"{output_name}{file_prefix + i}.txt")
+                    output_file = FileUtils.get_temp_path(user_id, f"{output_name} {file_prefix + i}.txt")
                     with open(output_file, 'w', encoding='utf-8') as f:
                         f.write('\n'.join(chunk))
 

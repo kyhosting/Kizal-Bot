@@ -38,6 +38,7 @@ Pilih menu yang tersedia:
 ✅ Unban User   - Unban user
 🤖 Manage Bots  - Kelola multi-bot
 📈 Metrics      - Lihat metrics
+📢 Broadcast    - Kirim pesan ke semua user
 
 ───────────────────────────────────────
 ```"""
@@ -815,6 +816,42 @@ async def handle_owner_input(client: Client, message: Message):
                 text_msg = f"```\n❌ {result.get('error', 'Unknown error')}\n```"
             
             await message.reply_text(text_msg, reply_markup=get_bot_checker_keyboard())
+    
+    elif mode == "broadcast":
+        if step == 1:
+            broadcast_message = text.strip()
+            
+            users = await db.get_all_users()
+            
+            if not users:
+                await SessionManager.clear(user_id)
+                await message.reply_text(
+                    "```\n❌ Tidak ada user untuk broadcast\n```",
+                    reply_markup=get_owner_panel_keyboard()
+                )
+                return
+            
+            success_count = 0
+            fail_count = 0
+            
+            await message.reply_text(f"```\n📢 Mengirim broadcast ke {len(users)} users...\n```")
+            
+            for user in users:
+                try:
+                    await client.send_message(
+                        chat_id=user['telegram_id'],
+                        text=f"<pre>{broadcast_message}</pre>",
+                        parse_mode="html"
+                    )
+                    success_count += 1
+                except Exception:
+                    fail_count += 1
+            
+            await SessionManager.clear(user_id)
+            await message.reply_text(
+                f"```\n✅ BROADCAST SELESAI\n───────────────────────────────────────\n\n📤 Terkirim : {success_count}\n❌ Gagal    : {fail_count}\n📊 Total    : {len(users)}\n\n───────────────────────────────────────\n```",
+                reply_markup=get_owner_panel_keyboard()
+            )
 
 
 @handle_errors
@@ -949,6 +986,19 @@ async def show_check_history(client: Client, message: Message):
     await message.reply_text(text, reply_markup=get_owner_panel_keyboard())
 
 
+@handle_errors
+async def broadcast_start(client: Client, message: Message):
+    if not is_owner(message.from_user.id):
+        return
+    
+    await SessionManager.save(message.from_user.id, "broadcast", step=1)
+    
+    await message.reply_text(
+        "```\n📢 BROADCAST MESSAGE\n───────────────────────────────────────\n\nKirim pesan yang ingin di-broadcast ke semua user.\n\nFormat:\n<pre> isi pesan </pre>\n\nContoh:\n<pre> Halo semua! Ada update baru. </pre>\n\n───────────────────────────────────────\n```",
+        reply_markup=get_cancel_keyboard()
+    )
+
+
 def register_owner_handlers(app: Client):
     app.on_message(filters.regex("^🜲 Owner Panel 🜲$") & filters.private)(owner_panel)
     app.on_message(filters.regex("^🜲 Statistik 🜲$") & filters.private)(show_statistics)
@@ -981,3 +1031,5 @@ def register_owner_handlers(app: Client):
     app.on_message(filters.regex("^🜲 View Alerts 🜲$") & filters.private)(show_alerts)
     app.on_message(filters.regex("^🜲 Response Times 🜲$") & filters.private)(show_response_times)
     app.on_message(filters.regex("^🜲 Error Rates 🜲$") & filters.private)(show_error_rates)
+    
+    app.on_message(filters.regex("^📢 Broadcast$") & filters.private)(broadcast_start)

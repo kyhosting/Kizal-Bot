@@ -112,6 +112,7 @@ def get_owner_panel_keyboard() -> ReplyKeyboardMarkup:
         [KeyboardButton("🜲 Ban User 🜲"), KeyboardButton("🜲 Unban User 🜲")],
         [KeyboardButton("🤖 Manage Bots"), KeyboardButton("📊 Dashboard")],
         [KeyboardButton("🔍 Check Bot"), KeyboardButton("🜲 Metrics 🜲")],
+        [KeyboardButton("📢 Broadcast")],
         [KeyboardButton("🔙 KEMBALI 🔙")]
     ]
     return ReplyKeyboardMarkup(keyboard, resize_keyboard=True)
