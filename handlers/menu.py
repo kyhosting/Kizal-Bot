@@ -447,18 +447,7 @@ async def handle_bot_tokens(client: Client, message: Message):
     if not is_owner(user_id):
         return
     
-    from core.bot_manager import bot_manager
-    
-    bots = await bot_manager.get_all_bots()
-    
-    if not bots:
-        text = "```\n📭 Belum ada bot token terdaftar\n```"
-    else:
-        text = "```\n🔑 BOT TOKENS\n───────────────────────────────────────\n"
-        for bot in bots:
-            status_emoji = "🟢" if bot['status'] == "running" else "🔴"
-            text += f"\n{status_emoji} {bot['name']}\n   ID: {bot['bot_id']} | Status: {bot['status'].upper()}\n"
-        text += "\n───────────────────────────────────────\n```"
+    text = "```\n🔑 BOT TOKENS\n───────────────────────────────────────\n\nFitur multi-bot tidak tersedia.\nBot utama berjalan dengan normal.\n\n───────────────────────────────────────\n```"
     
     await message.reply_text(text, reply_markup=get_bot_system_keyboard())
 
@@ -636,12 +625,10 @@ async def show_realtime_stats(client: Client, message: Message):
         return
     
     from core.monitoring import BotMonitor
-    from core.bot_manager import bot_manager
     
     monitor = BotMonitor()
     metrics = await monitor.get_system_metrics()
     stats = await monitor.get_bot_statistics()
-    bot_summary = await bot_manager.get_summary()
     
     text = f"""```
 📊 REAL-TIME STATS
@@ -661,12 +648,6 @@ async def show_realtime_stats(client: Client, message: Message):
 • VIP: {stats['vip_count']}
 • VVIP: {stats['vvip_count']}
 • Active: {stats.get('active_today', 0)}
-
-───────────────────────────────────────
-🤖 Bots
-───────────────────────────────────────
-• Total: {bot_summary['total_bots']}
-• Online: {bot_summary['running']}
 
 ───────────────────────────────────────
 ```"""
@@ -737,35 +718,23 @@ async def show_bot_fleet(client: Client, message: Message):
     if not is_owner(user_id):
         return
     
-    from core.bot_manager import bot_manager
-    
-    bots = await bot_manager.get_all_bots()
-    summary = await bot_manager.get_summary()
-    
-    text = f"""```
+    text = """```
 🤖 BOT FLEET
 ───────────────────────────────────────
 
 📊 Summary
 ───────────────────────────────────────
-• Total Bots: {summary['total_bots']}
-• Running: {summary['running']}
-• Stopped: {summary['stopped']}
-• Error: {summary['error']}
+• Total Bots: 1
+• Running: 1
+• Stopped: 0
 
 ───────────────────────────────────────
-📋 Bots List
+📋 Bot List
 ───────────────────────────────────────
-"""
-    
-    if bots:
-        for bot in bots:
-            status_emoji = "🟢" if bot['status'] == "running" else "🔴"
-            text += f"{status_emoji} {bot['name']} (ID: {bot['bot_id']})\n"
-    else:
-        text += "Tidak ada bot terdaftar\n"
-    
-    text += "\n───────────────────────────────────────\n```"
+🟢 Main Bot (Active)
+
+───────────────────────────────────────
+```"""
     
     await message.reply_text(text, reply_markup=get_dashboard_keyboard())
 

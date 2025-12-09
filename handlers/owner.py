@@ -596,13 +596,11 @@ async def show_dashboard(client: Client, message: Message):
         return
     
     from core.monitoring import BotMonitor
-    from core.bot_manager import bot_manager
     
     monitor = BotMonitor()
     metrics = await monitor.get_system_metrics()
     stats = await monitor.get_bot_statistics()
     limit_stats = await db.get_limit_stats()
-    bot_summary = await bot_manager.get_summary()
     
     uptime = metrics.get('uptime', 'N/A')
     
@@ -628,13 +626,6 @@ async def show_dashboard(client: Client, message: Message):
 ───────────────────────────────────────
 • Avg Usage     : {limit_stats['avg_usage_reguler']:.1f}/15
 • Limit Exceeded: {limit_stats['limit_exceeded_count']} users
-
-───────────────────────────────────────
-🤖 BOT FLEET
-───────────────────────────────────────
-• Total Bots    : {bot_summary['total_bots']}
-• Running       : {bot_summary['running']}
-• Stopped       : {bot_summary['stopped']}
 
 ───────────────────────────────────────
 ```"""

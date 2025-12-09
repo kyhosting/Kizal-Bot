@@ -42,7 +42,6 @@ def print_startup_banner():
     print(f"👨‍💻 Created by: {BOT_CREATOR}")
     print(f"🤖 Bot Name: {BOT_NAME}")
     print("✅ Using Pyrogram v2 + SQLite")
-    print("✅ Multi-bot Management System")
     print("✅ Comprehensive Monitoring")
     print("=" * 50 + "\n")
 
@@ -74,10 +73,6 @@ async def main():
         workers=100,
         workdir="."
     )
-    
-    from core.bot_manager import bot_manager
-    await bot_manager.initialize(api_id=API_ID, api_hash=API_HASH, main_bot=app)
-    logger.info("Bot manager initialized!")
 
     register_start_handlers(app)
     register_menu_handlers(app)
@@ -207,16 +202,6 @@ async def main():
         print(f"📱 Bot: @{bot_info.username}")
         print(f"🆔 Bot ID: {bot_info.id}")
         logger.info(f"Bot is running! @{bot_info.username}")
-        
-        await asyncio.sleep(5)
-        summary = await bot_manager.get_summary()
-        if summary['total_bots'] > 0:
-            print(f"\n🤖 Multi-Bot Status:")
-            print(f"   Total: {summary['total_bots']} bots")
-            print(f"   Running: {summary['running']} ✅")
-            print(f"   Stopped: {summary['stopped']} ⏸️")
-            if summary['error'] > 0:
-                print(f"   Error: {summary['error']} ❌")
 
         await asyncio.Event().wait()
 
